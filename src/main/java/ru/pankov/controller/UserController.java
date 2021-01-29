@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.pankov.entity.User;
 import ru.pankov.service.UserService;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.security.Principal;
 
 @RestController
@@ -19,7 +21,14 @@ public class UserController {
 
     // http://localhost:8189/get/1
     @GetMapping("/get/{id}")
-    public Long findUserById(@PathVariable(value = "id") Long id) {
+    public Long getUserScoreById(@PathVariable(value = "id") Long id, Principal principal, HttpServletResponse response) throws IOException {
+        User client = userService.findByUsername(principal.getName()).orElseThrow(() -> new RuntimeException("There is no user with user name " + principal.getName()));
+        User user = userService.findById(id).orElseThrow(() -> new RuntimeException("There is no user with id = " + id));
+
+        if (!client.getId().equals(user.getId()) && client.getRoles().stream().noneMatch(r -> r.getName().equals("ROLE_ADMIN"))) {
+            response.sendError(403);
+        }
+
         return userService.findById(id).orElseThrow(() -> new RuntimeException("There is no user with id = " + id)).getScore();
     }
 
